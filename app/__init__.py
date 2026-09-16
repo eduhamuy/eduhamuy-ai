@@ -1,0 +1,1 @@
+"""EduHamuy AI application package."""

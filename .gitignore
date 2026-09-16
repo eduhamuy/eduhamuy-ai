@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Environment files and secrets
+.env*
+!.env.example
+
+# Local data and generated artifacts
+data/
+artifacts/
+*.pdf
+*.joblib
+*.npz
+processed_documents.csv
+
+# Test and tooling output
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Notebooks and OS files
+.ipynb_checkpoints/
+.DS_Store
