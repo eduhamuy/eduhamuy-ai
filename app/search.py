@@ -3,6 +3,7 @@
 import re
 from typing import Any
 
+import numpy as np
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
@@ -58,7 +59,16 @@ def search_documents(
         return []
 
     query_vector = artifacts.vectorizer.transform([cleaned_query])
-    scores = cosine_similarity(query_vector, artifacts.matrix).ravel()
+    lexical_scores = cosine_similarity(query_vector, artifacts.matrix).ravel()
+    scores = lexical_scores
+    if artifacts.method == "hybrid_tfidf_embeddings":
+        if artifacts.document_embeddings is None or artifacts.embedding_model is None:
+            raise RuntimeError("Hybrid artifacts are incomplete")
+        query_embedding = np.asarray(
+            artifacts.embedding_model.encode([query], normalize_embeddings=True)
+        )[0]
+        semantic_scores = np.asarray(artifacts.document_embeddings) @ query_embedding
+        scores = artifacts.alpha * _minmax(lexical_scores) + (1 - artifacts.alpha) * _minmax(semantic_scores)
     candidate_indices = scores.argsort()[::-1][:top_n]
 
     results: list[dict[str, object]] = []
@@ -77,3 +87,11 @@ def search_documents(
         )
 
     return results
+
+
+def _minmax(scores: Any) -> np.ndarray:
+    values = np.asarray(scores, dtype=float)
+    lower, upper = values.min(), values.max()
+    if upper == lower:
+        return np.zeros_like(values)
+    return (values - lower) / (upper - lower)
