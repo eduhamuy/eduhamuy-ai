@@ -8,6 +8,12 @@ from app.artifacts import ArtifactBundle
 from app.search import preprocess_text
 
 
+class FakeEmbeddingModel:
+    def encode(self, queries, normalize_embeddings=True):
+        assert normalize_embeddings is True
+        return [[1.0, 0.0] for _ in queries]
+
+
 def test_search_returns_matching_documents(monkeypatch) -> None:
     documents = pd.DataFrame(
         {
@@ -42,3 +48,22 @@ def test_search_returns_service_unavailable_without_artifacts(monkeypatch) -> No
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Search index is temporarily unavailable"}
+
+
+def test_hybrid_search_combines_tfidf_and_embeddings() -> None:
+    documents = pd.DataFrame({
+        "document_title": ["Educación superior", "Salud comunitaria"],
+        "document_path": ["education.pdf", "health.pdf"],
+    })
+    vectorizer = TfidfVectorizer()
+    matrix = vectorizer.fit_transform(["educación superior", "salud comunitaria"])
+    bundle = ArtifactBundle(
+        vectorizer, sparse.csr_matrix(matrix), documents,
+        method="hybrid_tfidf_embeddings", alpha=0.3,
+        document_embeddings=[[1.0, 0.0], [0.0, 1.0]],
+        embedding_model=FakeEmbeddingModel(),
+    )
+
+    from app.search import search_documents
+
+    assert search_documents("educación", bundle, 1)[0]["document_path"] == "education.pdf"
