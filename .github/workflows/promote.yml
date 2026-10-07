@@ -1,0 +1,82 @@
+name: Promote AI
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+      image_tag:
+        description: Immutable GHCR image tag to promote
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  promote:
+    name: Promote to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Validate image tag
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: test -n "$IMAGE_TAG"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate image exists
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: docker manifest inspect "${IMAGE}:${IMAGE_TAG}" > /dev/null
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: eduhamuy/eduhamuy-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Update and validate GitOps manifest
+        working-directory: gitops
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          KUSTOMIZATION="environments/${ENVIRONMENT}/eduhamuy-ai/kustomization.yaml"
+          test -f "$KUSTOMIZATION"
+          sed -i "s/newTag: .*/newTag: ${IMAGE_TAG}/" "$KUSTOMIZATION"
+          kubectl kustomize "environments/${ENVIRONMENT}/eduhamuy-ai" > /dev/null
+
+      - name: Create GitOps pull request
+        working-directory: gitops
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          SHORT_TAG="$(echo "$IMAGE_TAG" | cut -c1-12)"
+          BRANCH="promote/${ENVIRONMENT}-ai-${SHORT_TAG}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "environments/${ENVIRONMENT}/eduhamuy-ai/kustomization.yaml"
+          git commit -m "chore(promote): deploy AI ${IMAGE_TAG} to ${ENVIRONMENT}"
+          git push origin "$BRANCH"
+          gh pr create --repo eduhamuy/eduhamuy-gitops --base main --head "$BRANCH" \
+            --title "chore(promote): deploy AI ${IMAGE_TAG} to ${ENVIRONMENT}" \
+            --body "Image: ghcr.io/${{ github.repository }}:${IMAGE_TAG}"
