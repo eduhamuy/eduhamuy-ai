@@ -1,0 +1,59 @@
+name: Promote AI Index
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment containing the approved build
+        required: true
+        type: choice
+        options: [dev]
+      build_version:
+        description: Immutable build version under builds/hybrid-tfidf-embeddings/
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.environment }} index
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-indexer.txt
+
+      - name: Authenticate to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install CPU-only indexer dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.2.2
+          python -m pip install -r requirements-indexer.txt
+
+      - name: Verify and copy the immutable build
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
+          ARTIFACT_CONTAINER: ai-artifacts-${{ inputs.environment }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+        run: |
+          python -m indexer.build_index promote \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --artifact-container "$ARTIFACT_CONTAINER" \
+            --build-version "$BUILD_VERSION"
+          echo "## Approved index" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`indexes/hybrid-tfidf-embeddings/$BUILD_VERSION\`" >> "$GITHUB_STEP_SUMMARY"
