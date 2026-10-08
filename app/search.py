@@ -80,6 +80,7 @@ def search_documents(
         row = artifacts.documents.iloc[int(index)]
         results.append(
             {
+                "document_id": str(row["document_id"]) if "document_id" in row else str(row["document_path"]),
                 "document_title": str(row["document_title"]),
                 "document_path": str(row["document_path"]),
                 "similarity_score": round(score, 6),

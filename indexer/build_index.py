@@ -178,7 +178,9 @@ def extract_and_audit_corpus(
         raw_pdf = download(container, blob.name)
         reference = normalize_reference(blob.name[len(corpus_prefix):])
         audit = {
-            "document_id": f"doc-{sha256_bytes(raw_pdf)[:16]}",
+            # The path participates in the identifier so two intentionally
+            # separate files with identical bytes remain separate documents.
+            "document_id": f"doc-{sha256_bytes(blob.name.encode('utf-8') + b'\\0' + raw_pdf)[:16]}",
             "blob_path": blob.name,
             "sha256": sha256_bytes(raw_pdf),
             "bytes": len(raw_pdf),
@@ -195,6 +197,7 @@ def extract_and_audit_corpus(
                 skipped_no_text.append(blob.name)
                 continue
             records.append({
+                "document_id": audit["document_id"],
                 "document_path": reference,
                 "source_blob_path": blob.name,
                 "document_title": title_from_path(reference),
@@ -332,7 +335,12 @@ def write_artifacts(
     evaluation_detail: pd.DataFrame, evaluation_summary: pd.DataFrame,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    metadata = documents[["document_path", "document_title", "document_words"]].copy()
+    # Keep the public identifier and the audited source location together with
+    # the vector metadata. The serving API uses the identifier to select a
+    # document; it never accepts an arbitrary blob path from a browser.
+    metadata = documents[[
+        "document_id", "document_path", "source_blob_path", "document_title", "document_words",
+    ]].copy()
     (output_dir / "tfidf").mkdir(exist_ok=True)
     joblib.dump(vectorizer, output_dir / "tfidf" / "tfidf_vectorizer.joblib")
     sparse.save_npz(output_dir / "tfidf" / "X_tfidf.npz", matrix)

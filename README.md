@@ -4,7 +4,7 @@ Backend y notebooks para el MVP de búsqueda documental de EduHamuy.
 
 El notebook explora la extracción de texto desde PDFs, la construcción de
 índices y la evaluación de búsquedas híbridas. El backend FastAPI expone los
-endpoints `/health` y `/search`.
+endpoints `/health`, `/search`, `/documents` y `/documents/{document_id}/preview`.
 
 ## Estructura
 
@@ -52,8 +52,15 @@ validación actual de DEV usa:
 
 ```text
 AZURE_ARTIFACT_CONTAINER=ai-artifacts-dev
-ARTIFACT_PREFIX=experiments/2026-10-07-v1
+ARTIFACT_PREFIX=indexes/hybrid_tfidf_embeddings/<BUILD_VERSION>
 ```
+
+El catálogo público se deriva exclusivamente de los documentos del índice
+activo. La vista previa recibe un `document_id`, valida que pertenece a ese
+índice y transmite el PDF desde el contenedor privado; no entrega al navegador
+una ruta de Blob Storage ni un SAS. Para habilitarla, configurar
+`AZURE_SOURCE_CONTAINER` y un `AZURE_SOURCE_SAS` de solo lectura, limitado a
+ese contenedor. El SAS de artefactos puede mantenerse independiente.
 
 ## Pruebas
 
