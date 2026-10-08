@@ -9,7 +9,7 @@ on:
         type: choice
         options: [dev]
       build_version:
-        description: Approved build version under indexes/hybrid-tfidf-embeddings/
+        description: Approved build version under indexes/hybrid_tfidf_embeddings/
         required: true
         type: string
 
@@ -37,7 +37,7 @@ jobs:
           ARTIFACT_CONTAINER: ai-artifacts-${{ inputs.environment }}
           BUILD_VERSION: ${{ inputs.build_version }}
         run: |
-          PREFIX="indexes/hybrid-tfidf-embeddings/$BUILD_VERSION"
+          PREFIX="indexes/hybrid_tfidf_embeddings/$BUILD_VERSION"
           az storage blob show \
             --account-name "$AZURE_STORAGE_ACCOUNT" \
             --container-name "$ARTIFACT_CONTAINER" \
@@ -65,7 +65,7 @@ jobs:
           BUILD_VERSION: ${{ inputs.build_version }}
         run: |
           DEPLOYMENT="environments/${ENVIRONMENT}/eduhamuy-ai/deployment.yaml"
-          PREFIX="indexes/hybrid-tfidf-embeddings/${BUILD_VERSION}"
+          PREFIX="indexes/hybrid_tfidf_embeddings/${BUILD_VERSION}"
           test -f "$DEPLOYMENT"
           sed -i "/name: ARTIFACT_PREFIX/{n;s|value: .*|value: ${PREFIX}|;}" "$DEPLOYMENT"
           kubectl kustomize "environments/${ENVIRONMENT}/eduhamuy-ai" > /dev/null
@@ -79,7 +79,7 @@ jobs:
         run: |
           SHORT_VERSION="$(echo "$BUILD_VERSION" | cut -c1-36)"
           BRANCH="deploy/${ENVIRONMENT}-ai-index-${SHORT_VERSION}"
-          PREFIX="indexes/hybrid-tfidf-embeddings/${BUILD_VERSION}"
+          PREFIX="indexes/hybrid_tfidf_embeddings/${BUILD_VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"

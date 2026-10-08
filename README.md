@@ -74,8 +74,8 @@ El notebook permanece como entorno de exploración. La construcción aprobable s
 ejecuta con `indexer/build_index.py` y nunca sobrescribe un prefijo existente:
 
 ```text
-builds/hybrid-tfidf-embeddings/<BUILD_VERSION>/   # salida evaluada
-indexes/hybrid-tfidf-embeddings/<BUILD_VERSION>/ # misma salida, aprobada
+builds/hybrid_tfidf_embeddings/<BUILD_VERSION>/   # salida evaluada
+indexes/hybrid_tfidf_embeddings/<BUILD_VERSION>/ # misma salida, aprobada
 ```
 
 El comando `build` descarga los PDFs y la suite desde Azure, normaliza rutas
@@ -101,7 +101,7 @@ python -m indexer.build_index build \
 Agregar `--publish` publica en:
 
 ```text
-ai-artifacts-dev/builds/hybrid-tfidf-embeddings/<BUILD_VERSION>/
+ai-artifacts-dev/builds/hybrid_tfidf_embeddings/<BUILD_VERSION>/
 ```
 
 ## Workflows y Azure OIDC
