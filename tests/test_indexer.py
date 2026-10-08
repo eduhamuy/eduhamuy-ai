@@ -19,7 +19,9 @@ def test_normalize_reference_handles_decomposed_unicode() -> None:
 
 def test_write_artifacts_emits_hybrid_contract_and_hashes(tmp_path) -> None:
     documents = pd.DataFrame({
+        "document_id": ["doc-one", "doc-two"],
         "document_path": ["one.pdf", "two.pdf"],
+        "source_blob_path": ["corpora/corpus-v1/pdfs/one.pdf", "corpora/corpus-v1/pdfs/two.pdf"],
         "document_title": ["One", "Two"],
         "document_words": [2, 2],
         "text_content": ["educacion superior", "salud comunitaria"],
@@ -51,3 +53,8 @@ def test_write_artifacts_emits_hybrid_contract_and_hashes(tmp_path) -> None:
     assert contract["artifacts"] == REQUIRED_CONTRACT_ARTIFACTS
     assert contract["selected_method"] == "hybrid_tfidf_embeddings"
     assert set(contract["artifacts"]).issubset(manifest["files"])
+    metadata = pd.read_csv(tmp_path / "tfidf" / "document_metadata.csv")
+    assert list(metadata["document_id"]) == ["doc-one", "doc-two"]
+    assert list(metadata["source_blob_path"]) == [
+        "corpora/corpus-v1/pdfs/one.pdf", "corpora/corpus-v1/pdfs/two.pdf",
+    ]

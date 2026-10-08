@@ -46,6 +46,12 @@ def _required_setting(name: str) -> str:
     return value
 
 
+def _storage_container(account: str, credential: str, container_name: str) -> Any:
+    return BlobServiceClient(
+        account_url=f"https://{account}.blob.core.windows.net", credential=credential
+    ).get_container_client(container_name)
+
+
 def _blob_name(prefix: str, relative_name: str) -> str:
     path = PurePosixPath(relative_name)
     if path.is_absolute() or ".." in path.parts:
@@ -102,9 +108,7 @@ def load_artifacts() -> ArtifactBundle:
     sas = _required_setting("AZURE_STORAGE_SAS").lstrip("?")
     container_name = os.getenv("AZURE_ARTIFACT_CONTAINER", "ai-artifacts").strip()
     prefix = os.getenv("ARTIFACT_PREFIX", "").strip().strip("/")
-    container = BlobServiceClient(
-        account_url=f"https://{account}.blob.core.windows.net", credential=sas
-    ).get_container_client(container_name)
+    container = _storage_container(account, sas, container_name)
 
     # Compatibility mode while the deployed TF-IDF layout is still in service.
     if not prefix:
@@ -147,3 +151,21 @@ def load_artifacts() -> ArtifactBundle:
     if hybrid_config.get("normalization") != "minmax":
         raise ArtifactValidationError("Unsupported hybrid normalization")
     return ArtifactBundle(base.vectorizer, base.matrix, base.documents, "hybrid_tfidf_embeddings", alpha, embeddings, _load_embedding_model(model_name))
+
+
+def source_container() -> Any:
+    """Return the private source container used only for PDF previewing.
+
+    A separate read-only SAS is preferred. Falling back to the existing
+    storage SAS keeps local development compatible while deployments migrate
+    to a source-container-scoped credential.
+    """
+
+    account = _required_setting("AZURE_STORAGE_ACCOUNT")
+    sas = os.getenv("AZURE_SOURCE_SAS", "").strip().lstrip("?")
+    if not sas:
+        sas = _required_setting("AZURE_STORAGE_SAS").lstrip("?")
+    container_name = os.getenv("AZURE_SOURCE_CONTAINER", "").strip()
+    if not container_name:
+        raise ArtifactConfigurationError("Required setting AZURE_SOURCE_CONTAINER is not configured")
+    return _storage_container(account, sas, container_name)
