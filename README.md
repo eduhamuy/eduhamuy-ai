@@ -109,9 +109,9 @@ ai-artifacts-dev/builds/hybrid_tfidf_embeddings/<BUILD_VERSION>/
 Los workflows manuales están separados para evitar publicar o desplegar una
 construcción sin revisión:
 
-1. **Build AI Index** crea y evalúa `builds/.../<BUILD_VERSION>`.
-2. **Promote AI Index** verifica hashes y crea `indexes/.../<BUILD_VERSION>`.
-3. **Deploy AI Index** verifica el índice aprobado y abre un PR de GitOps que
+- **1. Build AI Index** crea y evalúa `builds/.../<BUILD_VERSION>`.
+- **2. Promote AI Index** verifica hashes y crea `indexes/.../<BUILD_VERSION>`.
+- **3. Deploy AI Index** verifica el índice aprobado y abre un PR de GitOps que
    cambia `ARTIFACT_PREFIX`.
 
 Actualmente las opciones se limitan a `dev` porque solo existe el overlay AI

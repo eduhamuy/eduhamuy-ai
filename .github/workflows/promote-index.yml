@@ -1,4 +1,4 @@
-name: Promote AI Index
+name: "2. Promote AI Index"
 
 on:
   workflow_dispatch:
