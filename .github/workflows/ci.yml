@@ -36,10 +36,9 @@ jobs:
         run: python -m pytest -q
 
   container:
-    name: Build and Push Container
+    name: Build Container
     runs-on: ubuntu-latest
     needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     permissions:
       contents: read
       packages: write
@@ -59,7 +58,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          # Pull requests build the image, including the CPU-only assertion in
+          # the Dockerfile, without publishing it. Only merged DEV commits are
+          # published to GHCR.
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:dev
