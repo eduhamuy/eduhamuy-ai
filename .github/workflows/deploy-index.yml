@@ -1,4 +1,4 @@
-name: Deploy AI Index
+name: "3. Deploy AI Index"
 
 on:
   workflow_dispatch:

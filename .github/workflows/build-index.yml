@@ -1,4 +1,4 @@
-name: Build AI Index
+name: "1. Build AI Index"
 
 on:
   workflow_dispatch:
