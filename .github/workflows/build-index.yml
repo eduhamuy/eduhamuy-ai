@@ -81,4 +81,4 @@ jobs:
           BUILD_VERSION: ${{ steps.index.outputs.build_version }}
         run: |
           echo "## Immutable index build" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`builds/hybrid-tfidf-embeddings/$BUILD_VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`builds/hybrid_tfidf_embeddings/$BUILD_VERSION\`" >> "$GITHUB_STEP_SUMMARY"

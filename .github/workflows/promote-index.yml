@@ -9,7 +9,7 @@ on:
         type: choice
         options: [dev]
       build_version:
-        description: Immutable build version under builds/hybrid-tfidf-embeddings/
+        description: Immutable build version under builds/hybrid_tfidf_embeddings/
         required: true
         type: string
 
@@ -56,4 +56,4 @@ jobs:
             --artifact-container "$ARTIFACT_CONTAINER" \
             --build-version "$BUILD_VERSION"
           echo "## Approved index" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`indexes/hybrid-tfidf-embeddings/$BUILD_VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`indexes/hybrid_tfidf_embeddings/$BUILD_VERSION\`" >> "$GITHUB_STEP_SUMMARY"

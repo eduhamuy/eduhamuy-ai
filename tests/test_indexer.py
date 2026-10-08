@@ -31,7 +31,7 @@ def test_write_artifacts_emits_hybrid_contract_and_hashes(tmp_path) -> None:
         source_container="source", evaluation_container="evaluation", artifact_container="artifacts",
         build_version="build-v1", account_name="storage", corpus_prefix="corpora/corpus-v1/pdfs/",
         evaluation_blob="suites/suite-v1/evaluation_queries.csv",
-        artifact_prefix="builds/hybrid-tfidf-embeddings/build-v1",
+        artifact_prefix="builds/hybrid_tfidf_embeddings/build-v1",
     )
     suite = pd.DataFrame({"query_id": ["q1"], "query": ["educacion"], "split": ["dev"],
                           "relevant_documents": ["one.pdf"], "query_type": ["title"]})
