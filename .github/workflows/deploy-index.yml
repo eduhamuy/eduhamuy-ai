@@ -1,0 +1,91 @@
+name: Deploy AI Index
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to configure with an approved index
+        required: true
+        type: choice
+        options: [dev]
+      build_version:
+        description: Approved build version under indexes/hybrid-tfidf-embeddings/
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Configure ${{ inputs.environment }} AI index
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Authenticate to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify approved index exists
+        env:
+          AZURE_STORAGE_ACCOUNT: ${{ vars.AZURE_STORAGE_ACCOUNT }}
+          ARTIFACT_CONTAINER: ai-artifacts-${{ inputs.environment }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+        run: |
+          PREFIX="indexes/hybrid-tfidf-embeddings/$BUILD_VERSION"
+          az storage blob show \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$ARTIFACT_CONTAINER" \
+            --name "$PREFIX/artifact_manifest.json" \
+            --auth-mode login \
+            --output none
+          az storage blob show \
+            --account-name "$AZURE_STORAGE_ACCOUNT" \
+            --container-name "$ARTIFACT_CONTAINER" \
+            --name "$PREFIX/deployment_contract.json" \
+            --auth-mode login \
+            --output none
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: eduhamuy/eduhamuy-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Update and validate GitOps manifest
+        working-directory: gitops
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+        run: |
+          DEPLOYMENT="environments/${ENVIRONMENT}/eduhamuy-ai/deployment.yaml"
+          PREFIX="indexes/hybrid-tfidf-embeddings/${BUILD_VERSION}"
+          test -f "$DEPLOYMENT"
+          sed -i "/name: ARTIFACT_PREFIX/{n;s|value: .*|value: ${PREFIX}|;}" "$DEPLOYMENT"
+          kubectl kustomize "environments/${ENVIRONMENT}/eduhamuy-ai" > /dev/null
+
+      - name: Create GitOps pull request
+        working-directory: gitops
+        env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+        run: |
+          SHORT_VERSION="$(echo "$BUILD_VERSION" | cut -c1-36)"
+          BRANCH="deploy/${ENVIRONMENT}-ai-index-${SHORT_VERSION}"
+          PREFIX="indexes/hybrid-tfidf-embeddings/${BUILD_VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "environments/${ENVIRONMENT}/eduhamuy-ai/deployment.yaml"
+          git commit -m "chore(deploy): use AI index ${BUILD_VERSION} in ${ENVIRONMENT}"
+          git push origin "$BRANCH"
+          gh pr create --repo eduhamuy/eduhamuy-gitops --base main --head "$BRANCH" \
+            --title "chore(deploy): use AI index ${BUILD_VERSION} in ${ENVIRONMENT}" \
+            --body "Artifact prefix: \`${PREFIX}\`"
