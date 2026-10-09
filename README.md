@@ -1,6 +1,8 @@
 # eduhamuy-ai
 
-Backend y notebooks para el MVP de búsqueda documental de EduHamuy.
+Backend y notebooks para el MVP de búsqueda documental de EduHamuy. El
+servicio recupera **documentos PDF**, no fragmentos como resultado principal,
+mediante una combinación de TF-IDF y embeddings multilingües.
 
 El notebook explora la extracción de texto desde PDFs, la construcción de
 índices y la evaluación de búsquedas híbridas. El backend FastAPI expone los
@@ -17,6 +19,39 @@ tests/        Pruebas automatizadas
 
 Los PDFs y artefactos generados permanecen en Azure Blob Storage. 
 No se subiran secretos, archivos `.env`, PDFs ni archivos `.joblib` o `.npz`.
+
+## Corpus, evaluación y Azure Blob Storage
+
+La cuenta privada `steduhamuyshared` separa los insumos del corpus, la suite de
+evaluación y los artefactos que consume el backend. Esta es la estructura de
+DEV; los valores entre ángulos cambian por versión:
+
+```text
+steduhamuyshared/
+├── ai-source-dev/
+│   └── corpora/<CORPUS_VERSION>/pdfs/<documento>.pdf
+├── ai-evaluation-dev/
+│   └── suites/<SUITE_VERSION>/evaluation_queries.csv
+└── ai-artifacts-dev/
+    ├── builds/hybrid_tfidf_embeddings/<BUILD_VERSION>/
+    └── indexes/hybrid_tfidf_embeddings/<BUILD_VERSION>/
+```
+
+`builds/` conserva una construcción evaluada e inmutable. `indexes/` contiene
+los mismos bytes después de la promoción y es el único origen que puede cargar
+el servicio desplegado. Cada publicación incluye manifiestos SHA-256 para
+auditar corpus, suite y artefactos.
+
+La versión de DEV actualmente aprobada es
+`dev-2026-10-08-catalog-e267c5b`; usa `hybrid_tfidf_embeddings` con
+`alpha=0.30`. En la suite de prueba obtuvo nDCG@5 de `0.9274`, frente a
+`0.8021` para TF-IDF y `0.8875` para embeddings por separado.
+
+Azure Storage no es público ni debe compartirse con usuarios externos. Como
+material de referencia para revisión externa está disponible la carpeta de
+[Google Drive del proyecto](https://drive.google.com/drive/folders/1OPa6n57k_e7YeXuRJWVDL779GUC747dJ?usp=sharing).
+Contiene información equivalente para consulta, pero no reemplaza la fuente de
+verdad privada, los manifiestos ni los artefactos versionados de Azure.
 
 ## Ejecución local
 
